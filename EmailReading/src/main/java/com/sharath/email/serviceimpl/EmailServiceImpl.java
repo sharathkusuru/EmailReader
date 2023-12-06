@@ -21,65 +21,58 @@ import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+
 @Service
 public class EmailServiceImpl implements EmailService {
-	
+
 	@Autowired
 	EmailRepository emailRepository;
 
-	 @Override
-	    public List<Email> getAllEmails() throws MessagingException, IOException {
-	        Properties properties = new Properties();
-	        // Set your email configuration properties
-	        properties.setProperty("mail.store.protocol", "imaps");
+	@Override
+	public List<Email> getAllEmails() throws MessagingException, IOException {
+		Properties properties = new Properties();
+		properties.setProperty("mail.store.protocol", "imaps");
 
-	        Session session = Session.getDefaultInstance(properties, null);
+		Session session = Session.getDefaultInstance(properties, null);
 
-	        // Connect to the store
-	        Store store = session.getStore("imaps"); // Use "imap" for IMAP servers
-	        store.connect("imap.gmail.com", "sharathkumark509@gmail.com", "lfmm bvjg epqx lsac");
+		Store store = session.getStore("imaps");
+		store.connect("imap.gmail.com", "sharathkumark509@gmail.com", "lfmm bvjg epqx lsac");
 
-	        // Open the inbox folder
-	        Folder inbox = store.getFolder("INBOX");
-	        inbox.open(Folder.READ_ONLY);
+		Folder inbox = store.getFolder("INBOX");
+		inbox.open(Folder.READ_ONLY);
 
-	        // Get messages
-	        Message[] messages = inbox.getMessages();
+		Message[] messages = inbox.getMessages();
 
-	        // Process messages and save to database
-	        List<Email> emailList = new ArrayList<>();
-	        for (Message message : messages) {
-	            Email email = new Email();
-	            email.setSubject(message.getSubject());
-	            email.setSender(Arrays.toString(message.getFrom()));
-	            try {
-					email.setContent(getTextFromMessage(message));
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+		List<Email> emailList = new ArrayList<>();
+		for (Message message : messages) {
+			Email email = new Email();
+			email.setSubject(message.getSubject());
+			email.setSender(Arrays.toString(message.getFrom()));
+			try {
+				email.setContent(getTextFromMessage(message));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 
-	            emailList.add(email);
-	        }
+			emailList.add(email);
+		}
 
-	        // Save emails to the database
-	        emailRepository.saveAll(emailList);
+		emailRepository.saveAll(emailList);
 
-	        // Close the store
-	        store.close();
+		store.close();
 
-	        return emailList;
-	    }
+		return emailList;
+	}
 
-	    private String getTextFromMessage(Part bp2) throws Exception {
-	        if (bp2.isMimeType("text/plain")) {
-	            return bp2.getContent().toString();
-	        } else if (bp2.isMimeType("multipart/*")) {
-	            Multipart mp = (Multipart) bp2.getContent();
-	            BodyPart bp = mp.getBodyPart(0);
-	            return getTextFromMessage((Part) bp);
-	        }
-	        return "";
-	    }
+	private String getTextFromMessage(Part bp2) throws Exception {
+		if (bp2.isMimeType("text/plain")) {
+			return bp2.getContent().toString();
+		} else if (bp2.isMimeType("multipart/*")) {
+			Multipart mp = (Multipart) bp2.getContent();
+			BodyPart bp = mp.getBodyPart(0);
+			return getTextFromMessage((Part) bp);
+		}
+		return "";
+	}
 
 }
